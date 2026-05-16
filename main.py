@@ -1,11 +1,8 @@
 from flask import Flask
 from models import *
-
-
+from route import *
 
 app = Flask(__name__)
-
-from views import *
 
 Base.metadata.create_all(bind=dbaula)
 

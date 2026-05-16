@@ -10,11 +10,12 @@ session = Session()
 Base = declarative_base()
 
 #tabelas
+
 class User (Base):
     __tablename__ = "users"
     email = Column("Email", String(100), primary_key=True)
     nome = Column ("Nome", String(100))
-    senha = Column("Senha", Integer)
+    senha = Column("Senha", String(128))
 
     def __init__(self,email,nome,senha):
         self.nome = nome

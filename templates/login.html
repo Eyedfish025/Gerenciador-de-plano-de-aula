@@ -19,12 +19,12 @@
             <p class="text-gray-500 text-sm mt-1">Gerencie seus planos de aula com facilidade</p>
         </div>
 
-        <form id="form-login" class="space-y-4">
+        <form id="form-login" class="space-y-4" action="/login" method="POST">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
                 <div class="relative">
                     <i data-lucide="mail" class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"></i>
-                    <input type="email" id="login-email" placeholder="seu@email.com" required class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="email" name="login-mail" id="login-mail" placeholder="seu@email.com" required class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
             </div>
 
@@ -35,7 +35,7 @@
                 </div>
                 <div class="relative">
                     <i data-lucide="lock" class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"></i>
-                    <input type="password" id="login-senha" placeholder="••••••••" required class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="password" name="login-senha" id="login-senha" placeholder="••••••••" required class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
             </div>
 
@@ -48,13 +48,13 @@
                 Entrar
             </button>
         </form>
-
+            
         <div class="mt-6 text-center text-sm text-gray-600">
             Não tem uma conta? 
             <a href="/cadastro" class="text-blue-600 font-medium hover:underline">Cadastre-se</a>
         </div>
+    
     </div>
 
-    <script src="{{url_for('static', filename='login.js')}}"></script>
 </body>
 </html>
