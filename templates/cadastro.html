@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - Gerenciador de Planos de Aula</title>
+    <link rel="stylesheet" href="{{url_for('static', filename='style.css')}}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="flex min-h-screen items-center justify-center px-4 py-8">
+
+    <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full border border-gray-100">
+        <div class="flex flex-col items-center mb-6">
+            <div class="p-3 bg-green-100 text-green-600 rounded-full mb-3">
+                <i data-lucide="user-plus" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800">Criar Nova Conta</h2>
+            <p class="text-gray-500 text-sm mt-1">Comece a organizar suas aulas hoje mesmo</p>
+        </div>
+
+        <form id="form-cadastro" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                <div class="relative">
+                    <i data-lucide="user" class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"></i>
+                    <input type="text" id="cad-nome" placeholder="Prof. João Silva" required class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                <div class="relative">
+                    <i data-lucide="mail" class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"></i>
+                    <input type="email" id="cad-email" placeholder="joao@escola.com" required class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                <div class="relative">
+                    <i data-lucide="lock" class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"></i>
+                    <input type="password" id="cad-senha" placeholder="Mínimo 6 caracteres" required class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+            </div>
+
+            <div class="flex items-start">
+                <input id="terms" type="checkbox" required class="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                <label for="terms" class="ml-2 block text-sm text-gray-600">
+                    Eu concordo com os <a href="#" class="text-green-600 hover:underline">Termos de Serviço</a> e <a href="#" class="text-green-600 hover:underline">Política de Privacidade</a>.
+                </label>
+            </div>
+
+            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 shadow-md">
+                Concluir Cadastro
+            </button>
+        </form>
+
+        <div class="mt-6 text-center text-sm text-gray-600">
+            Já possui uma conta? 
+            <a href="/" class="text-green-600 font-medium hover:underline">Fazer Login</a>
+        </div>
+    </div>
+
+    <script src="{{url_for('static', filename='cadastro.js')}}"></script>
+</body>
+</html>
