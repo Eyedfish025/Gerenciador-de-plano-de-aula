@@ -1,0 +1,3 @@
+*.db
+models.py
+views.py
