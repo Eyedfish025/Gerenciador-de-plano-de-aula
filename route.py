@@ -8,19 +8,6 @@ from flask_bcrypt import generate_password_hash, check_password_hash
 def homepage():
     return render_template("login.html")
 
-@app.route("/login", methods=["POST"])
-def login():
-    email = request.form.get("email")
-    senha = request.form.get("senha")
-
-    usuario = session.query(User).filter_by(email=email).first()
-
-    if usuario and check_password_hash(usuario.senha, senha):
-        return redirect('/dashboard')
-    else:
-        return redirect('/')
-
-
 @app.route("/dashboard")
 
 def dashboard():
