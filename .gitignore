@@ -3,3 +3,6 @@ models.py
 views.py
 /__pycache__
 .env
+.pre-commit-config.yaml
+.venv
+/tests

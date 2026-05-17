@@ -1,3 +1,6 @@
+// Dashboard script para gerenciamento de planos de aula.
+// Cuida da Listagem paginação e exebição das recomendações por ia.
+
 document.addEventListener('DOMContentLoaded', () => {
     let planos = [];
     let currentPage = 1;
@@ -30,7 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
         inputObjetivo: document.getElementById('plano-objetivo'),
         inputEmenta: document.getElementById('plano-ementa'),
         inputConteudos: document.getElementById('plano-conteudos'),
-        inputRecursos: document.getElementById('plano-recursos')
+        inputRecursos: document.getElementById('plano-recursos'),
+        btnGerarIA: document.getElementById('btn-gerar-ia')
     };
 
     function formatDate(date) {
@@ -38,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return d.toLocaleDateString('pt-BR');
     }
 
+    // Atualiza os indicadores de total, planos da semana e disciplinas.
     function updateMetrics() {
         elements.totalPlanos.textContent = planos.length;
 
@@ -54,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.disciplinasCount.textContent = disciplinas.size;
     }
 
+    // Filtra os planos de aula de acordo com o termo de busca.
     function getFilteredPlanos() {
         const filtro = currentFilter.trim().toLowerCase();
         if (!filtro) return planos;
@@ -118,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Busca os planos do usuário autenticado e atualiza a lista na interface.
     async function fetchPlanos() {
         try {
             const response = await fetch(apiBase);
@@ -140,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Cria ou atualiza um plano de aula no backend.
     async function savePlano(planoData) {
         const method = editingId ? 'PUT' : 'POST';
         const url = editingId ? `${apiBase}/${editingId}` : apiBase;
@@ -169,6 +177,57 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Erro ao salvar plano:', error);
             alert(`Erro ao salvar: ${error.message}`);
             return false;
+        }
+    }
+
+    // Controla o estado do botão de recomendação por IA para evitar múltiplos cliques.
+    function setIAButtonState(isLoading) {
+        if (!elements.btnGerarIA) return;
+        elements.btnGerarIA.disabled = isLoading;
+        elements.btnGerarIA.textContent = isLoading ? 'Gerando IA...' : 'Gerar Recomendações com IA';
+    }
+
+    // Envia dados ao backend para receber recomendações de IA.
+    async function generateIARecommendations() {
+        const titulo = elements.inputTitulo.value.trim();
+        const disciplina = elements.inputDisciplina.value.trim();
+        const ementa = elements.inputEmenta.value.trim();
+
+        if (!titulo || !disciplina || !ementa) {
+            alert('Preencha Título da Aula, Disciplina e Ementa antes de gerar recomendações.');
+            return;
+        }
+
+        setIAButtonState(true);
+        try {
+            const response = await fetch('/api/ia-recommendations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ titulo, disciplina, ementa })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Falha ao obter recomendações de IA.');
+            }
+
+            const data = await response.json();
+            elements.inputConteudos.value = data.conteudos || '';
+            elements.inputRecursos.value = data.recursos || '';
+            elements.inputTags.value = Array.isArray(data.tags) ? data.tags.join(', ') : data.tags || '';
+
+            if (data.relatedTopics) {
+                elements.inputObjetivo.value = data.relatedTopics;
+            }
+
+            alert('Recomendações de IA preenchidas com sucesso.');
+        } catch (error) {
+            console.error('Erro IA:', error);
+            alert(`Erro ao gerar recomendações: ${error.message}`);
+        } finally {
+            setIAButtonState(false);
         }
     }
 
@@ -235,10 +294,12 @@ document.addEventListener('DOMContentLoaded', () => {
         openModal(true);
     }
 
+    // Abre o modal para criar um novo plano.
     elements.btnNovoPlano.addEventListener('click', () => {
         openModal(false);
     });
 
+    // Fecha o modal sem salvar alterações.
     elements.btnFecharModal.addEventListener('click', closeModal);
     elements.btnCancelarModal.addEventListener('click', closeModal);
 
@@ -247,6 +308,15 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPage = 1;
         renderPlanos();
     });
+
+    // Conecta o botão IA ao manipulador de recomendações.
+    if (elements.btnGerarIA) {
+        elements.btnGerarIA.addEventListener('click', generateIARecommendations);
+    }
+
+    if (elements.btnGerarIA) {
+        elements.btnGerarIA.addEventListener('click', generateIARecommendations);
+    }
 
     elements.prevPage.addEventListener('click', () => {
         if (currentPage > 1) {
