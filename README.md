@@ -72,4 +72,6 @@ Para visualização do banco foi utilizado o aplicativo DBBrowser
 
 OBS: caso ocorra erros na geração da IA, mandar email para gustavojonathan048@gmail.com, para verificação da chave de api e/ou ativação da mesma
 ---
-Video explicativo:
+
+README gerado pelo assistente
+Video explicativo: https://youtu.be/0EOu5fcEmFE?si=OUt63L93IY9Tr-hH
