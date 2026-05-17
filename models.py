@@ -4,7 +4,7 @@ from sqlalchemy import Column, ForeignKey, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 # Configura o motor de banco de dados SQLite.
-dbaula = create_engine("sqlite:///meubanco.db")
+dbaula = create_engine("sqlite:///PlanAula.db")
 
 # Cria uma fábrica de sessões e uma instância de sessão para acesso ao banco de dados.
 Session = sessionmaker(bind=dbaula)
