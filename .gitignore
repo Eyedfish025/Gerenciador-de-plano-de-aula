@@ -6,3 +6,4 @@ views.py
 .pre-commit-config.yaml
 .venv
 /tests
+.vscode
