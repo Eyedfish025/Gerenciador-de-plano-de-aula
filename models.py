@@ -37,12 +37,12 @@ class Plan(Base):
     __tablename__ = "planos"
     id = Column(Integer, primary_key=True, autoincrement=True)
     titulo = Column(String(200))
-    objetivo = Column(String(1000))
-    ementa = Column(String(1000))
+    objetivo = Column(String(2000))
+    ementa = Column(String(2000))
     dataPrevista = Column(String(10))
     disciplina = Column(String(100))
-    conteudos = Column(String(1000))
-    recursos = Column(String(1000))
+    conteudos = Column(String(2000))
+    recursos = Column(String(2000))
     tags = Column(String(300))
     user_email = Column(String(100), ForeignKey("users.Email"), nullable=False)
 

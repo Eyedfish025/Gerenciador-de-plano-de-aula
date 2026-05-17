@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import urllib.error
 import urllib.request
@@ -10,6 +11,8 @@ from flask_bcrypt import check_password_hash, generate_password_hash
 from main import app
 from models import Plan, User
 from models import session as db_session
+
+logger = logging.getLogger(__name__)
 
 
 # Rotas da aplicação e APIs REST.
@@ -127,6 +130,9 @@ def ia_recommendations():
         'O formato deve ser exatamente: {"conteudos":"...","recursos":"...","relatedTopics":"...","tags":["tag1","tag2","tag3"]}. '
         f"Título: {titulo}\nDisciplina: {disciplina}\nEmenta: {ementa}"
     )
+    logger.info(
+        "IA prompt gerado para usuário %s: %s", flask_session.get("user_email"), prompt
+    )
 
     payload = {
         "model": "openai/gpt-5.2",
@@ -138,35 +144,110 @@ def ia_recommendations():
             {"role": "user", "content": prompt},
         ],
         "temperature": 0.0,
-        "max_tokens": 400,
+        "max_tokens": 1000,
     }
 
     def parse_json_text(text):
         # Tenta extrair e desserializar JSON de uma string de resposta da IA.
-        try:
-            return json.loads(text)
-        except json.JSONDecodeError:
-            import re
+        import re
 
-            start = text.find("{")
-            if start == -1:
-                raise
+        cleaned = text.strip()
+        cleaned = re.sub(r"```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"^.*?\{", "{", cleaned, flags=re.DOTALL)
 
-            # Tenta extrair o primeiro objeto JSON completo a partir da primeira chave.
-            matches = list(re.finditer(r"\}", text[start:]))
-            for match in reversed(matches):
-                candidate = text[start : start + match.end()]
-                try:
-                    return json.loads(candidate)
-                except json.JSONDecodeError:
+        def extract_json_object(source):
+            depth = 0
+            in_string = False
+            escape = False
+            start_index = source.find("{")
+            if start_index == -1:
+                return None
+
+            for index in range(start_index, len(source)):
+                char = source[index]
+                if char == "\\" and not escape:
+                    escape = True
                     continue
+                if char == '"' and not escape:
+                    in_string = not in_string
+                if not in_string:
+                    if char == "{":
+                        depth += 1
+                    elif char == "}":
+                        depth -= 1
+                        if depth == 0:
+                            return source[start_index : index + 1]
+                if escape:
+                    escape = False
+            return None
 
-            # Última tentativa: extrai qualquer conteúdo entre chaves e parseia.
-            match = re.search(r"\{.*\}", text[start:], re.DOTALL)
-            if match:
-                return json.loads(match.group(0))
+        def escape_raw_newlines(source):
+            escaped = []
+            in_string = False
+            escape = False
+            for char in source:
+                if char == "\\" and not escape:
+                    escape = True
+                    escaped.append(char)
+                    continue
+                if char == '"' and not escape:
+                    in_string = not in_string
+                    escaped.append(char)
+                elif in_string and char == "\n":
+                    escaped.append("\\n")
+                elif in_string and char == "\r":
+                    escaped.append("\\r")
+                elif in_string and char == "\t":
+                    escaped.append("\\t")
+                else:
+                    escaped.append(char)
+                if escape and char != "\\":
+                    escape = False
+            return "".join(escaped)
 
-            raise
+        def sanitize_candidate(source):
+            source = source.strip()
+            if "}" in source:
+                source = source[: source.rfind("}") + 1]
+            source = source.replace("\r", "\\r").replace("\n", "\\n")
+            return source
+
+        def try_load_json(source):
+            source = source.strip()
+            if not source:
+                raise ValueError("Nenhum JSON encontrado")
+            if not source.endswith("}"):
+                source = source[: source.rfind("}") + 1]
+            while source:
+                try:
+                    return json.loads(source)
+                except json.JSONDecodeError as exc:
+                    if (
+                        "Unterminated string" in str(exc)
+                        or "Expecting property name" in str(exc)
+                        or "Extra data" in str(exc)
+                    ):
+                        comma_index = source.rfind(",")
+                        if comma_index == -1:
+                            raise exc
+                        source = source[:comma_index] + "}"
+                        continue
+                    raise exc
+
+        candidate = extract_json_object(cleaned)
+        if candidate is None:
+            match = re.search(r"\{.*\}", cleaned, re.DOTALL)
+            candidate = match.group(0) if match else cleaned
+
+        candidate = escape_raw_newlines(candidate)
+        candidate = sanitize_candidate(candidate)
+
+        try:
+            return try_load_json(candidate)
+        except json.JSONDecodeError as exc:
+            alt_candidate = candidate.replace("'", '"')
+            return try_load_json(alt_candidate)
 
     try:
         request_data = json.dumps(payload).encode("utf-8")
@@ -185,10 +266,31 @@ def ia_recommendations():
             response_text = response.read().decode("utf-8")
             completion = json.loads(response_text)
 
+        logger.info(
+            "Resposta bruta da IA para usuário %s: %s",
+            flask_session.get("user_email"),
+            response_text,
+        )
         if "choices" not in completion or not completion["choices"]:
+            logger.warning("Resposta inesperada da IA: %s", completion)
             return jsonify({"error": f"Resposta inesperada da IA: {completion}"}), 500
 
-        content = completion["choices"][0]["message"]["content"]
+        choice = completion["choices"][0]
+        message = choice.get("message") if isinstance(choice, dict) else None
+        content = message.get("content") if isinstance(message, dict) else ""
+        logger.info("Conteúdo extraído da IA: %s", content)
+
+        if not content:
+            logger.error("Conteúdo da IA ausente ou vazio: %s", choice)
+            return (
+                jsonify(
+                    {
+                        "error": "Conteúdo da IA ausente ou vazio.",
+                        "raw": completion,
+                    }
+                ),
+                500,
+            )
 
         try:
             result = parse_json_text(content)
@@ -203,23 +305,73 @@ def ia_recommendations():
                 500,
             )
 
+        if result is None or not isinstance(result, dict):
+            logger.error("Resposta parseada inválida da IA: %s", result)
+            return (
+                jsonify(
+                    {
+                        "error": "Resposta da IA não veio no formato esperado.",
+                        "raw": content,
+                    }
+                ),
+                500,
+            )
+
+        # 1. Trata as tags (mantém o seu comportamento original)
         tags = result.get("tags", [])
         if isinstance(tags, str):
             tags = [tag.strip() for tag in tags.split(",") if tag.strip()]
 
+        # 2. Nova função auxiliar interna para garantir que o front-end SEMPRE receba uma String
+        def forcar_string(valor):
+            if valor is None:
+                return ""
+            if isinstance(valor, list):
+                # Se a IA enviou uma lista de itens, junta tudo quebrando linha
+                return "\n".join(str(item) for item in valor)
+            if isinstance(valor, dict):
+                # Se a IA inventou um objeto/dicionário, transforma em texto formatado
+                return json.dumps(valor, ensure_ascii=False, indent=2)
+            # Se já for string ou qualquer outro tipo, converte para string pura
+            return str(valor)
+
+        # 3. Limpa e garante o tipo string para os três campos textuais
+        conteudos_limpo = forcar_string(result.get("conteudos", ""))
+        recursos_limpo = forcar_string(result.get("recursos", ""))
+        related_topics_limpo = forcar_string(result.get("relatedTopics", ""))
+
+        # 4. Retorna com segurança para o front-end
         return jsonify(
             {
-                "conteudos": result.get("conteudos", ""),
-                "recursos": result.get("recursos", ""),
-                "relatedTopics": result.get("relatedTopics", ""),
+                "conteudos": conteudos_limpo,
+                "recursos": recursos_limpo,
+                "relatedTopics": related_topics_limpo,
                 "tags": tags,
             }
         )
+
     except urllib.error.HTTPError as http_err:
         try:
             error_body = http_err.read().decode("utf-8")
-            error_json = json.loads(error_body)
-            message = error_json.get("error", {}).get("message", str(http_err))
+            error_json = None
+            try:
+                error_json = json.loads(error_body)
+            except json.JSONDecodeError:
+                pass
+
+            if isinstance(error_json, dict):
+                message = error_json.get("error", {})
+                if isinstance(message, dict):
+                    message = message.get("message")
+                if not message:
+                    message = error_json.get("message")
+                if not message:
+                    message = error_json.get("detail")
+            else:
+                message = None
+
+            if not message:
+                message = str(http_err)
         except Exception:
             message = str(http_err)
         return jsonify({"error": f"Falha ao obter recomendações de IA: {message}"}), 500
