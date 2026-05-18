@@ -124,6 +124,7 @@ def ia_recommendations():
     if not openrouter_api_key:
         return jsonify({"error": "Chave OPENROUTER_API_KEY não configurada."}), 500
 
+    openrouter_model = os.environ.get("OPENROUTER_MODEL", "gpt-4o-mini")
     prompt = (
         "Você é um assistente para professores. Use o título, disciplina e ementa para gerar sugestões de conteúdos complementares, recursos, tópicos relacionados e 3 tags recomendadas. "
         "Responda apenas com um JSON válido, sem markdown e sem texto adicional. "
@@ -135,7 +136,7 @@ def ia_recommendations():
     )
 
     payload = {
-        "model": "openai/gpt-5.2",
+        "model": openrouter_model,
         "messages": [
             {
                 "role": "system",
@@ -256,7 +257,6 @@ def ia_recommendations():
             data=request_data,
             headers={
                 "Authorization": f"Bearer {openrouter_api_key}",
-                "OpenRouter-Api-Key": openrouter_api_key,
                 "Content-Type": "application/json",
             },
             method="POST",
@@ -353,6 +353,11 @@ def ia_recommendations():
     except urllib.error.HTTPError as http_err:
         try:
             error_body = http_err.read().decode("utf-8")
+            logger.error(
+                "Erro HTTP OpenRouter para usuário %s: %s",
+                flask_session.get("user_email"),
+                error_body,
+            )
             error_json = None
             try:
                 error_json = json.loads(error_body)
@@ -372,6 +377,18 @@ def ia_recommendations():
 
             if not message:
                 message = str(http_err)
+
+            if http_err.code == 401:
+                if "User not found" in message:
+                    message = (
+                        "OpenRouter retornou 'User not found'. Verifique se OPENROUTER_API_KEY"
+                        " está correta, ativa e associada a uma conta OpenRouter válida."
+                    )
+                elif "No cookie auth credentials found" in message:
+                    message = (
+                        "Autenticação OpenRouter incompleta. Use o cabeçalho"
+                        " Authorization: Bearer <OPENROUTER_API_KEY> válido."
+                    )
         except Exception:
             message = str(http_err)
         return jsonify({"error": f"Falha ao obter recomendações de IA: {message}"}), 500
