@@ -39,7 +39,7 @@ Projeto simples para criação, edição e gerenciamento de planos de aula.
   - `FLASK_SECRET_KEY` — chave secreta do Flask (sessões).
   - `OPENROUTER_API_KEY` — chave para usar o endpoint de recomendações de IA (opcional, usado por `/api/ia-recommendations`).
 
-- Dependências principais (sugeridas para `requirements.txt`):
+- Dependências principais:
 ```
 Flask
 SQLAlchemy
@@ -59,14 +59,6 @@ pip install -r requirements.txt
 python main.py
 ```
 ou
-
-```
-No arquivo main.py, basta apenas clicar para funcionar o pyhon file, e no seu localhost na porta definida (5000 por padrão), basta apenas usar o aplicativo
-
-Para visualização do banco foi utilizado o aplicativo DBBrowser
-
-
-```
 
 ## Contato 
 
